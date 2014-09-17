@@ -1,0 +1,76 @@
+#!/bin/bash
+function	func_input_num()
+{
+	read  result_num  
+	expr  ${result_num}  +  0  1>/dev/null  2>&1  
+	if  [  $?  -eq  0  ];  then  
+	    echo	$result_num 
+	else  
+	    echo  "${result_num}  is  not  a  number!"
+	    exit
+	fi
+}
+
+
+if [ $1 ]; then
+    key_word=$1
+else
+    key_word="jackpal.androidterm"
+fi
+
+search_command="www.wandoujia.com/search?key="
+tmp_result=".result"
+
+#search and save result from wandoujia
+echo    "---Start searching from Wandoujia..."
+curl ${search_command}${key_word} 2>/dev/null | grep 'install-btn'  | grep '.apk' > $tmp_result 
+echo    "---Done !!! Result:"
+echo
+
+#list result
+result_options=`cat $tmp_result | awk -F 'data-name=\"' '{print $2}' | awk -F '\"' '{print "    "NR". "$1}'`
+echo    "$result_options"
+echo    
+
+
+#choose num
+total_count=`echo "$result_options" | wc -l`
+echo    "---Please Choose a result, input the num	[1 to ${total_count}]:"
+if [ $total_count = "" ]; then
+	echo "		NO RESULT FOR ${key_word}"
+elif [ $total_count = "1" ]; then
+	echo "  Just one option "
+	result_num=1
+else
+	result_num=`func_input_num ${total_count}`
+fi
+
+#get file name
+file_name=`echo "$result_options" | sed ''$result_num'!d'`
+file_name=`echo $file_name | awk -F '.\ ' '{print $2}'`
+echo
+echo    "   ${file_name} is chosen"
+echo
+
+#get URL and apk_name
+url=`cat $tmp_result | sed ''$result_num'!d' | awk -F 'href=\"' '{print $2}' | awk -F "\"" '{print $1}'`
+apk_name=`cat $tmp_result | sed ''$result_num'!d' | awk -F 'download=\"' '{print $2}' | awk -F "\"" '{print $1}'`
+echo    -e  "---Downloading \033[;33;1m$url\033[0m into \033[;33;1m$apk_name\033[0m"
+echo
+
+#download
+wget $url -O $apk_name 2>/dev/null
+echo    "---Downloaded  "
+echo
+echo    "   `ls -l $apk_name`   Total:`du -sh $apk_name | awk '{print $1}'`"
+if [ `uname` = "Linux" ]; then
+    notify-send "$apk_name  Downloaded"
+fi
+echo
+
+
+
+
+
+
+rm  $tmp_result
