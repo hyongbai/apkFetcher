@@ -1,0 +1,84 @@
+#!/bin/bash
+function	func_input_num()
+{
+	read  RESULT_NUM  
+	expr  ${RESULT_NUM}  +  0  1>/dev/null  2>&1  
+	if  [  $?  -eq  0  ];  then  
+	    echo	$RESULT_NUM 
+	else  
+	    echo  "${RESULT_NUM}  is  not  a  number!"
+	    exit
+	fi
+}
+
+function 	trim_to_underline()
+{
+	trim_to_underline_result=`echo $1 | tr -s ' ' `
+	echo ${trim_to_underline_result//' '/_}
+}
+
+###############
+#			  #
+#  FUNC ENDS  #
+#			  #
+###############
+
+if [ "$1" ]; then
+    KEY_WORD="$1"
+else
+	echo "Please input what app you want to download!"
+    return
+fi
+
+SEARCH_COMMAND="www.wandoujia.com/search?key="
+tmp_result=".result"
+
+#search and save result from wandoujia
+echo    "---Start searching from Wandoujia..."
+curl ${SEARCH_COMMAND}${KEY_WORD} 2>/dev/null | grep 'install-btn'  | grep '.apk' > $tmp_result 
+echo    "---Done !!! Result:"
+echo
+
+#list result
+result_options=`cat $tmp_result | awk -F 'data-name=\"' '{print $2}' | awk -F '\"' '{print "    "NR". "$1}'`
+echo    "$result_options"
+echo    
+
+
+#choose num
+TOTAL_COUNT=`echo "$result_options" | wc -l`
+echo    "---Please Choose a result, input the num	[1 to ${TOTAL_COUNT}]:"
+if [ $TOTAL_COUNT = "" ]; then
+	echo "		NO RESULT FOR ${KEY_WORD}"
+elif [ $TOTAL_COUNT = "1" ]; then
+	echo "  Just one option "
+	RESULT_NUM=1
+else
+	RESULT_NUM=`func_input_num ${TOTAL_COUNT}`
+fi
+
+#get file name
+file_name=`echo "$result_options" | sed ''$RESULT_NUM'!d'`
+file_name=`echo $file_name | awk -F '.\ ' '{print $2}'`
+echo
+echo    "   ${file_name} is chosen"
+echo
+
+#get URL and APK_NAME
+url=`cat $tmp_result | sed ''$RESULT_NUM'!d' | awk -F 'href=\"' '{print $2}' | awk -F "\"" '{print $1}'`
+APK_NAME=`cat $tmp_result | sed ''$RESULT_NUM'!d' | awk -F 'download=\"' '{print $2}' | awk -F "\"" '{print $1}'`
+APK_NAME=`trim_to_underline "$APK_NAME"`
+echo    -e  "---Downloading \033[;33;1m$url\033[0m into \033[;33;1m$APK_NAME\033[0m"
+echo
+
+#download
+wget $url -O $APK_NAME 2>/dev/null
+echo    "---Downloaded  "
+echo
+echo    "   `ls -l $APK_NAME`   Total:`du -sh $APK_NAME | awk '{print $1}'`"
+if [ `uname` = "Linux" ]; then
+    notify-send "$APK_NAME  Downloaded"
+fi
+echo
+
+rm  $tmp_result
