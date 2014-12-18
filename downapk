@@ -1,14 +1,25 @@
 #!/bin/bash
+
+function 	is_num()
+{
+	IS_NUM=$1
+	expr  ${IS_NUM}  +  0  1>/dev/null  2>&1  
+	if  [  $?  -eq  0  ];  then  
+	    echo	$IS_NUM 
+	else  
+		echo "$NOT_A_NUM"
+	fi
+}
 function	func_input_num()
 {
-	read  RESULT_NUM  
-	expr  ${RESULT_NUM}  +  0  1>/dev/null  2>&1  
-	if  [  $?  -eq  0  ];  then  
-	    echo	$RESULT_NUM 
-	else  
-	    echo  "${RESULT_NUM}  is  not  a  number!"
-	    exit
-	fi
+	read  RESULT_NUM
+	echo `is_num "$RESULT_NUM"`
+	# expr  ${RESULT_NUM}  +  0  1>/dev/null  2>&1  
+	# if  [  $?  -eq  0  ];  then  
+	#     echo	$RESULT_NUM 
+	# else  
+	#     echo  "${RESULT_NUM}  is  not  a  number!"
+	# fi
 }
 
 function 	trim_to_underline()
@@ -22,6 +33,8 @@ function 	trim_to_underline()
 #  FUNC ENDS  #
 #			  #
 ###############
+
+NOT_A_NUM="NOT_A_NUM"
 
 if [ "$1" ]; then
     KEY_WORD="$1"
@@ -50,11 +63,17 @@ TOTAL_COUNT=`echo "$result_options" | wc -l`
 echo    "---Please Choose a result, input the num	[1 to ${TOTAL_COUNT}]:"
 if [ $TOTAL_COUNT = "" ]; then
 	echo "		NO RESULT FOR ${KEY_WORD}"
+    exit
 elif [ $TOTAL_COUNT = "1" ]; then
 	echo "  Just one option "
 	RESULT_NUM=1
 else
 	RESULT_NUM=`func_input_num ${TOTAL_COUNT}`
+fi
+RESULT_NUM=`is_num "$RESULT_NUM"`
+
+if [ $RESULT_NUM == $NOT_A_NUM ]; then
+    RESULT_NUM=1
 fi
 
 #get file name
